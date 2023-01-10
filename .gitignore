@@ -1,0 +1,5 @@
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*.pyc
+__pycache__/
+scripts/__pycache__/
