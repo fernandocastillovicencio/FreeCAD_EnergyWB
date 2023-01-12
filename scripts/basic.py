@@ -52,14 +52,14 @@ def importSurfaces():
         idf = IDF(epfdir+idf_file)
         return idf
     # ------------------------------------------------------------------------ #
-    def mkVertices(doc,surfaces):
+    def mkVertices(doc,surface):
         # ------------------------- import libraries ------------------------- #
         from eppy.function_helpers import getcoords
         # -------------------------- axis dictionary ------------------------- #
         ax = {0:'x' , 1:'y' , 2:'z'}
         # -------------------- get vertex coordinates -------------------- #
-        x = getcoords(surfaces)
-            # ---------------------------------------------------------------- #
+        x = getcoords(surface)
+        # -------------------------- vertex creation ------------------------- #
         for i in range(4):
             # ----------------------- Create vertex ---------------------- #
             cmd = 'doc.addObject( \"Part::Vertex\" , \"'+vxname(i)+'\" )'
@@ -119,14 +119,19 @@ def importSurfaces():
         cmd = 'doc.getObject(\"'+surface_name+'\").'+\
             'ViewObject.ShapeColor=' + str(epcolor[surface_type]) 
         exec(cmd)
+        # --------------------- Set windows transparency --------------------- #
+        if surface_type == 'Window':
+            # ----------------------- set transparency ----------------------- #
+            cmd = 'doc.getObject(\"'+surface_name+'\").ViewObject.Transparency=50'
+            exec(cmd)
     # ------------------------------------------------------------------------ #
-    def execution(doc,idf):
+    def mkBuildingSurfaces(doc,idf):
         # ---------------------------- processing ---------------------------- #
         for surfaces in idf.idfobjects['BuildingSurface:Detailed']:
             # ----------------- get surface names and zone id ---------------- #
-            surface_name = surfaces['Name'][6:].replace(' ','_')
-            surface_type = surfaces['Surface_Type']
-            zone_id = surfaces['Name'][:5].replace(' ','_')
+            description = surfaces['Name'].split(':')
+            surface_name = description[1]
+            surface_type = surfaces['Surface_Type']            
             # ------------------------- make vertices ------------------------ #
             mkVertices(doc,surfaces)
             # -------------------------- Make edges -------------------------- #
@@ -138,14 +143,52 @@ def importSurfaces():
             # ------------------------- remove edges ------------------------- #
             rmEdges(doc)
             # -------------------------- Set colors -------------------------- #
-            setColorSurf(doc,surface_name,surface_type)            
+            setColorSurf(doc,surface_name,surface_type)         
+    # ------------------------------------------------------------------------ #
+    def boolean_differencing(doc, window_name, surface_name):
+        # ------------------------- import libraries ------------------------- #
+        from BOPTools.JoinFeatures import makeCutout
+        # ---------------------------- operations ---------------------------- #
+        base = doc.getObject(surface_name)
+        tool = doc.getObject(window_name)
+        solid_wall = makeCutout(name='solid_wall')
+        solid_wall.Base = base ; solid_wall.Tool = tool
+        # ------------------------- coloring surface ------------------------- #
+        setColorSurf(doc,'solid_wall','Wall')  
+        # ------------------------------ rename ------------------------------ #
+        exec( 'base.Label = \"'+surface_name+'_raw\"' )
+        solid_wall.Label = surface_name
+        # # --------------------------- Make Compound -------------------------- #
+        # doc.addObject("Part::Compound","zone1")
+        # doc.Compound.Links = [App.activeDocument().Win001,App.activeDocument().solid_wall,App.activeDocument().Roof001,App.activeDocument().Flr001,App.activeDocument().Wall004,App.activeDocument().Wall003,App.activeDocument().Wall002,]
+        
+    # ------------------------------------------------------------------------ #
+    def mkFenestrationSurfaces(doc,idf):
+        # ---------------------------- processing ---------------------------- #
+        for windows in idf.idfobjects['FenestrationSurface:Detailed']:
+            # ----------------------------- names ---------------------------- #
+            description = windows['Name'].split(':')
+            surface_name = description[1]
+            window_name = description[2]
+            # ------------------------- make vertices ------------------------ #
+            mkVertices(doc,windows)
+            mkEdges(doc)
+            rmVertices(doc)
+            mkSurface(doc,window_name)
+            rmEdges(doc)
+            setColorSurf(doc , window_name, windows['Surface_Type'])
+            boolean_differencing(doc, window_name, surface_name)
     # ------------------------------------------------------------------------ #
     # ---------------------- Select the active document ---------------------- #
     doc = FreeCAD.ActiveDocument
     # ------------------------------- Execution ------------------------------ #
     idf1 = get_idf_file()
     # ------------------------ Execute the importation ----------------------- #
-    execution(doc,idf1)
+    mkBuildingSurfaces(doc,idf1)
+    mkFenestrationSurfaces(doc,idf1)
+    # ----------------------------- recompute ---------------------------- #
+    doc.recompute()
+    # ------------------------------------------------------------------------ #
     FreeCADGui.ActiveDocument.ActiveView.fitAll()
 # ---------------------------------------------------------------------------- #
 # GUI command that links the Python script
