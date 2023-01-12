@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-# FreeCAD init script of the Basic 1 module,
-# very simple workbench, just for the tutorial
-
 #***************************************************************************
-#*   (c) Felipe Machado    https://github.com/felipe-m  2017               *
+#*   (c) Fernando Castillo Vicencio    castillovicencio@aol.com  2022      *
+#*                 https://github.com/fernandocastillovicencio             *
 #*                                                                         *
 #*   This file is part of the FreeCAD CAx development system.              *
 #*                                                                         *
@@ -25,57 +23,30 @@
 #*                                                                         *
 #***************************************************************************/
 
-
-class Basic1Workbench (Workbench):
-    """Basic 1 workbench object"""
-    # this is the icon in XPM format 16x16 pixels 
-    Icon = """
-    /* XPM */
-    static char * basic1_xpm[] = {
-    "16 16 5 1",
-    " 	c None",
-    ".	c #FFFFFF",
-    "+	c #000000",
-    "@	c #7F4F00",
-    "#	c #FFBF00",
-    "................",
-    "...++++++++++++.",
-    "..+@#########++.",
-    ".+@#########+@+.",
-    ".+++++++++++@#+.",
-    ".+#########+##+.",
-    ".+###++####+##+.",
-    ".+####+####+##+.",
-    ".+####+####+##+.",
-    ".+####+####+##+.",
-    ".+####+####+##+.",
-    ".+####+####+##+.",
-    ".+###+++###+#@+.",
-    ".+#########+@+..",
-    ".++++++++++++...",
-    "................"};
-    """
-
-    MenuText = "Basic1"
-    ToolTip = "Basic 1 workbench"
+class energyWb(Workbench):
+    def __init__(self):
+        self.__class__.Icon=FreeCAD.getUserAppDataDir()+"Mod/EnergyWB/resources/icons/"+'main_icon.png'
+        self.__class__.MenuText="Energy Workbench"
+        self.__class__.ToolTip="My Energy Workbench. Test it!"
+        return
 
     def Initialize(self) :
         "This function is executed when FreeCAD starts"
         from PySide import QtCore, QtGui
-        # python file where the commands are:
-        from scripts import Basic1Gui
-        # import Basic1Gui
-        # list of commands, only one (it is in the imported Basic1Gui):
-        cmdlist = [ "Basic1_MakeBox"]
+        # -------------------------------------------------------------------- #
+        from scripts import basic
+       
+        cmdlist = [ "importSurfaces"]
         self.appendToolbar(
-            str(QtCore.QT_TRANSLATE_NOOP("Basic1", "Basic1")), cmdlist)
+            str(QtCore.QT_TRANSLATE_NOOP("EnergyTools","EnergyTools")),cmdlist
+        )
         self.appendMenu(
-            str(QtCore.QT_TRANSLATE_NOOP("Basic1", "Basic1")), cmdlist)
-
-        Log ('Loading Basic1 module... done\n')
-
+            str(QtCore.QT_TRANSLATE_NOOP("Energy", "Energy")), cmdlist
+        )
+        Log ('Loading Geometry module... done\n')
+        
     def GetClassName(self):
         return "Gui::PythonWorkbench"
 
 # The workbench is added
-Gui.addWorkbench(Basic1Workbench())
+Gui.addWorkbench(energyWb())
