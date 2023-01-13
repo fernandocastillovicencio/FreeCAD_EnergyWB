@@ -120,7 +120,7 @@ def importSurfaces():
             'ViewObject.ShapeColor=' + str(epcolor[surface_type]) 
         exec(cmd)
     # ------------------------------------------------------------------------ #
-    def execution(doc,idf):
+    def execution1(doc,idf):
         # ---------------------------- processing ---------------------------- #
         for surfaces in idf.idfobjects['BuildingSurface:Detailed']:
             # ----------------- get surface names and zone id ---------------- #
@@ -139,13 +139,47 @@ def importSurfaces():
             rmEdges(doc)
             # -------------------------- Set colors -------------------------- #
             setColorSurf(doc,surface_name,surface_type)            
+
     # ------------------------------------------------------------------------ #
+    def mkSolids(doc,idf):
+        # ---------------------------- processing ---------------------------- #
+        for zones in idf.idfobjects['Zone']:
+            zone_name = zones.Name.replace(' ','_')
+            # ---------------------------------------------------------------- #
+            compound_objects = ""
+            shell_objects= ""
+            for surfaces in idf.idfobjects['BuildingSurface:Detailed']:
+                surface_name = surfaces.Name.split(':')[1]
+                surface_zone = surfaces.Zone_Name.replace(' ','_')
+                if surface_zone == zone_name:
+                    compound_objects+='doc.'+surface_name+','
+                    shell_objects += 'doc.'+surface_name+'.Shape.Face1,'
+            # ------------------------ create compound ----------------------- #
+            cmd = "doc.addObject(\'Part::Compound\',\'"+zone_name+"_surfaces\')"
+            exec(cmd)
+            cmd = 'doc.'+zone_name+"_surfaces"+'.Links = ['+compound_objects+' ]'
+            exec(cmd)
+            # doc.recompute()
+            # ------------------------- Create shell ------------------------- #
+            cmd = 'shell = Part.Shell(['+shell_objects+' ])'
+            exec(cmd)
+            # doc.recompute()
+            # ------------------------- Create Solids ------------------------ #
+            cmd = "solid=Part.Solid(shell)"
+            exec(cmd)
+            cmd = "doc.addObject(\'Part::Feature\',\'"+zone_name+"\').Shape="+\
+                "solid.removeSplitter()"
+            exec(cmd)
+        # -------------------------------------------------------------------- #
     # ---------------------- Select the active document ---------------------- #
     doc = FreeCAD.ActiveDocument
     # ------------------------------- Execution ------------------------------ #
     idf1 = get_idf_file()
     # ------------------------ Execute the importation ----------------------- #
-    execution(doc,idf1)
+    execution1(doc,idf1)
+    
+    mkSolids(doc,idf1)
+    doc.recompute()
     FreeCADGui.ActiveDocument.ActiveView.fitAll()
 # ---------------------------------------------------------------------------- #
 # GUI command that links the Python script
